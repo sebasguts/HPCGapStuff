@@ -78,6 +78,8 @@ input2 := "tcp://127.0.0.1:33339";
 
 output2 := "tcp://127.0.0.1:33340";
 
+Perform(  [ input1, output1, input2, output2 ], ShareObj );
+
 server1 := CreateThread( server, input1, output1 );
 
 server2 := CreateThread( server, input2, output2 );
