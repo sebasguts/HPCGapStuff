@@ -1,8 +1,10 @@
 
-DeclareGlobalVariable( "HOMALG_SEND_CHANNEL" );
+# DeclareGlobalVariable( "HOMALG_SEND_CHANNEL" );
+# 
+# InstallValue( HOMALG_SEND_CHANNEL,
+#               CreateChannel( ) );
 
-InstallValue( HOMALG_SEND_CHANNEL,
-              CreateChannel( ) );
+BindGlobal( "HOMALG_SEND_CHANNEL", CreateChannel( ) );
 
 DeclareGlobalVariable( "HOMALG_RECEIVE_CHANNEL_LIST" );
 
@@ -64,9 +66,7 @@ receiver_client := function( input_address )
           
       fi;
       
-      recieved := ZmqReceiveList( socket );
-      
-      channel_number := Int( recieved[ 1 ] );
+      channel_number := Int( received[ 1 ] );
       
       atomic readwrite HOMALG_RECEIVE_CHANNEL_LIST_IN_USE do
           
@@ -76,7 +76,7 @@ receiver_client := function( input_address )
           
       od;
       
-      SendChannel( channel, recieved[ 2 ] );
+      SendChannel( channel, received[ 2 ] );
       
       atomic readwrite HOMALG_RECEIVE_CHANNEL_LIST do
           
@@ -110,9 +110,9 @@ push_to_server_with_return := function( command )
   
   atomic HOMALG_RECEIVE_CHANNEL_LIST_IN_USE do
       
-      channel_number := Length( HOMALG_RECEIVE_CHANNEL_LIST_IN_USE );
+      channel_number := Length( HOMALG_RECEIVE_CHANNEL_LIST_IN_USE ) + 1;
       
-      Add( HOMALG_RECEIVE_CHANNEL_LIST_IN_USE, channel, channel_number );
+      Add( HOMALG_RECEIVE_CHANNEL_LIST_IN_USE, channel );
       
   od;
   
@@ -121,6 +121,8 @@ push_to_server_with_return := function( command )
   SendChannel( HOMALG_SEND_CHANNEL, message );
   
   ret_val := ReceiveChannel( channel );
+  
+  NormalizeWhitespace( ret_val );
   
   return ret_val;
   

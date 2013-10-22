@@ -1,9 +1,35 @@
 
-DeclareGlobalVariable( "HOMALG_SEND_CHANNEL" );
+## This does not work at the moment
+# DeclareGlobalVariable( "HOMALG_SEND_CHANNEL" );
+# 
+# InstallValue( HOMALG_SEND_CHANNEL,
+#               CreateChannel( ) );
 
-InstallValue( HOMALG_SEND_CHANNEL,
-              CreateChannel );
+BindGlobal( "HOMALG_SEND_CHANNEL", CreateChannel( ) );
 
+
+launch_command_and_send_back_value := function( return_string, command )
+  local input_stream, output_string, output_stream;
+  
+  input_stream := InputTextString( command );
+  
+  Print( "gap> ", command, "\n" );
+  
+  output_string := "";
+  
+  output_stream := OutputTextString( output_string, false );
+  
+  SetOutput( output_stream, true );
+  
+  READ_STREAM_LOOP( input_stream, true );
+  
+  SetPreviousOutput();
+  
+  Print( output_string, "\n" );
+  
+  SendChannel( HOMALG_SEND_CHANNEL, [ return_string, output_string ] );
+  
+end;
 
 server_background_receiver := function( input_address )
   local input_socket, received, command;
@@ -34,7 +60,7 @@ server_background_receiver := function( input_address )
       
       if received[ 1 ] = "nonblocking" then
           
-          RunTask( READ_STREAM_LOOP, command, true );
+          RunTask( READ_STREAM_LOOP, InputTextString( command ), true );
           
       else
           
@@ -75,28 +101,6 @@ server_background_sender := function( output_address )
   
 end;
 
-launch_command_and_send_back_value := function( return_string, command )
-  local input_stream, output_string, output_stream;
-  
-  input_stream := InputTextString( command );
-  
-  Print( "gap> ", command, "\n" );
-  
-  output_string := "";
-  
-  output_stream := OutputTextString( output_string, false );
-  
-  SetOutput( output_stream, true );
-  
-  READ_STREAM_LOOP( input_stream, true );
-  
-  SetPreviousOutput();
-  
-  Print( output_string, "\n" );
-  
-  SendChannel( HOMALG_SEND_CHANNEL, [ return_string, output_string ] );
-  
-end;
 
 output := `"tcp://127.0.0.1:33337";
  
