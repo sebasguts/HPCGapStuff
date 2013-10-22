@@ -13,7 +13,10 @@ BindGlobal( "INSTALL_METHOD_WITHOUT_HACK",
 
 MakeImmutable( INSTALL_METHOD_WITHOUT_HACK );
 
-DeclareSyncProperty := function( arg )
+DeclareSync := function( type, sync_name )
+
+BindGlobal( sync_name,
+function( arg )
   local name, async_name;
   
   name := arg[ 1 ];
@@ -22,9 +25,13 @@ DeclareSyncProperty := function( arg )
       
       if IsBound( HOMALG_SYNC_ATTR_REC.(name) ) then
           
+          ## Should this only be done once for
+          ## every attribute, with IsObject filter?
+          CallFuncList( type, arg );
+          
           arg[ 1 ] := HOMALG_SYNC_ATTR_REC.(name);
           
-          CallFuncList( DeclareProperty, arg );
+          CallFuncList( type, arg );
           
           ## ASK: Is this okay like this?
           return;
@@ -41,7 +48,7 @@ DeclareSyncProperty := function( arg )
       
   od;
   
-  CallFuncList( DeclareProperty, arg );
+  CallFuncList( type, arg );
   
   arg[ 1 ] := async_name;
   
@@ -49,7 +56,7 @@ DeclareSyncProperty := function( arg )
   
   MakeReadOnly( async_name );
   
-  CallFuncList( DeclareProperty, arg );
+  CallFuncList( type, arg );
   
   INSTALL_METHOD_WITHOUT_HACK( ValueGlobal( name ),
                  "generated",
@@ -132,7 +139,12 @@ DeclareSyncProperty := function( arg )
         
     end );
   
+end ); 
+
 end;
+
+DeclareSync( DeclareProperty, "DeclareSyncProperty" );
+DeclareSync( DeclareAttribute, "DeclareSyncAttribute" );
 
 ORIG_InstallMethod := InstallMethod;
 MakeReadWriteGlobal( "InstallMethod" );
