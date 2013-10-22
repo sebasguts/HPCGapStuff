@@ -116,7 +116,7 @@ push_to_server_with_return := function( command )
       
   od;
   
-  message := [ channel_number, command ];
+  message := [ String( channel_number ), command ];
   
   SendChannel( HOMALG_SEND_CHANNEL, message );
   
@@ -127,6 +127,9 @@ push_to_server_with_return := function( command )
 end;
 
 push_to_server_without_return := function( command )
+  local message;
+  
+  message := [ "nonblocking", command ];
   
   SendChannel( HOMALG_SEND_CHANNEL, message );
   
@@ -136,7 +139,7 @@ input1 := `"tcp://127.0.0.1:33337";
  
 output1 := `"tcp://127.0.0.1:33338";
 
-CreateThread( sending_list, output1 );
+CreateThread( sender_client, output1 );
 
 CreateThread( receiver_client, input1 );
 
