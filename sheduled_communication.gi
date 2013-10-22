@@ -8,7 +8,12 @@ DeclareGlobalVariable( "HOMALG_connection_pipe_list" );
 InstallValue( HOMALG_connection_pipe_list,
               [ ] );
 
-ShareObj( HOMALG_connection_pipe_list );
+ShareLibraryObj( HOMALG_connection_pipe_list );
+
+DeclareGlobalVariable( "HOMALG_connection_pipe_list_semaphore" );
+
+InstallValue( HOMALG_connection_pipe_list_semaphore,
+              CreateSemaphore( 0 ) );
 
 Connection := function( input_address, output_address )
   local conn_rec, input_connection, output_connection;
@@ -26,10 +31,6 @@ Connection := function( input_address, output_address )
   conn_rec.input := input_connection;
   
   conn_rec.output := output_connection;
-#   
-#   ShareObj( conn_rec.input );
-#   
-#   ShareObj( conn_rec.output );
   
   ShareObj( conn_rec );
   
@@ -45,6 +46,8 @@ initialize_client := function( io_address_list )
       for i in io_address_list do
           
           Add( HOMALG_connection_pipe_list, CallFuncList( Connection, i ) );
+          
+          SignalSemaphore( HOMALG_connection_pipe_list_semaphore );
           
       od;
       
@@ -92,17 +95,13 @@ homalg_send_blocking := function( command_string )
   
   ## aquire lock on one connection
   
-  while not IsBound( connection_rec ) do
+  ## Use semaphore instead.
+  
+  WaitSemaphore( HOMALG_connection_pipe_list_semaphore );
+  
+  atomic readwrite HOMALG_connection_pipe_list do
       
-      atomic readwrite HOMALG_connection_pipe_list do
-          
-          if Length( HOMALG_connection_pipe_list ) > 0 then
-              
-              connection_rec := Remove( HOMALG_connection_pipe_list, 1 );
-              
-          fi;
-          
-      od;
+      connection_rec := Remove( HOMALG_connection_pipe_list, 1 );
       
   od;
   
@@ -117,6 +116,8 @@ homalg_send_blocking := function( command_string )
   atomic readwrite HOMALG_connection_pipe_list do
       
       Add( HOMALG_connection_pipe_list, connection_rec );
+      
+      SignalSemaphore( HOMALG_connection_pipe_list_semaphore );
       
   od;
   

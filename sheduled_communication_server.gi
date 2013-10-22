@@ -4,7 +4,9 @@ server := function( input_address, output_address )
   
   ## establish connection
   
-  atomic readwrite ZmqPullSocket, ZmqPushSocket, input_address, output_address do
+#   atomic readonly input_address, readonly output_address do
+  
+  Display( RegionOf( input_address ) );
   
   input_connection := ZmqPullSocket( );
   
@@ -14,7 +16,7 @@ server := function( input_address, output_address )
   
   ZmqBind( output_connection, output_address );
   
-  od;
+#   od;
   
   ##Start main loop
   while true do
@@ -70,15 +72,15 @@ server := function( input_address, output_address )
   
 end;
 
-input1 := "tcp://127.0.0.1:33337";
+input1 := `"tcp://127.0.0.1:33337";
+ 
+output1 := `"tcp://127.0.0.1:33338";
 
-output1 := "tcp://127.0.0.1:33338";
+input2 := `"tcp://127.0.0.1:33339";
 
-input2 := "tcp://127.0.0.1:33339";
+output2 := `"tcp://127.0.0.1:33340";
 
-output2 := "tcp://127.0.0.1:33340";
-
-Perform(  [ input1, output1, input2, output2 ], ShareObj );
+# Perform(  [ input1, output1, input2, output2 ], MakeReadOnly );
 
 server1 := CreateThread( server, input1, output1 );
 
