@@ -13,6 +13,10 @@ BindGlobal( "INSTALL_METHOD_WITHOUT_HACK",
 
 MakeImmutable( INSTALL_METHOD_WITHOUT_HACK );
 
+
+BindGlobal( "HOMALG_SYNC_LOCK",
+            ShareInternalObj( [ ] ) );
+
 DeclareSync := function( type, sync_name )
 
 BindGlobal( sync_name,
@@ -25,17 +29,14 @@ function( arg )
   
   MakeReadOnly( name );
   
+  async_name := Concatenation( arg[ 1 ], "_async_generated" );
+  
+  MakeReadOnly( async_name );
+  
+  ## Remove this
   atomic readwrite HOMALG_SYNC_ATTR_REC do
       
-      if IsBound( HOMALG_SYNC_ATTR_REC.(name) ) then
-          
-          async_name := HOMALG_SYNC_ATTR_REC.(name);
-          
-      else
-          
-          async_name := Concatenation( arg[ 1 ], "_async_generated" );
-          
-          MakeReadOnly( async_name );
+      if not IsBound( HOMALG_SYNC_ATTR_REC.(name) ) then
           
           HOMALG_SYNC_ATTR_REC.(name) := async_name;
           
@@ -53,27 +54,27 @@ function( arg )
                  
     function( x )
         local is_calculator, locker, semaphores, semaphore_list, semaphore, i,
-              ret_val;
+              ret_val, syncvar;
         
         is_calculator := false;
         
-        locker := Concatenation( name, "calculating" );
+        syncvar := Concatenation( async_name, "_syncvar" );
         
-        semaphores := Concatenation( name, "semaphores" );
-        
-        atomic readwrite x do
+        if not IsBound( x!.( syncvar ) ) then
             
-            if not IsBound( x!.( locker ) ) then
+            atomic readwrite HOMALG_SYNC_LOCK do
                 
-                x!.( locker ) := true;
+                if not IsBound( x!.( syncvar ) ) then
+                    
+                    is_calculator := true;
+                    
+                    x!.( syncvar ):= CreateSyncVar( );
+                    
+                fi;
                 
-                is_calculator := true;
-                
-                x!.( semaphores ):= ShareObj( [ ] );
-                
-            fi;
+            od;
             
-        od;
+        fi;
         
         if is_calculator then
             
@@ -82,47 +83,13 @@ function( arg )
             ## to not confuse the other threads
             Setter( ValueGlobal( name ) )( x, ret_val );
             
-            atomic readwrite x!.( semaphores ) do
-                
-                ## this can be done more efficient
-                for i in x!.( semaphores ) do
-                    
-                    SignalSemaphore( i );
-                    
-                od;
-                
-                x!.( semaphores ) := false;
-                
-            od;
-            
-            Unbind( x!.( locker ) );
+            SyncWrite( x!.( syncvar ), ret_val );
             
             return ret_val;
             
         else
             
-            
-            ## this needs to be here to not hold the lock longer than needed
-            semaphore := CreateSemaphore( );
-            
-            atomic readwrite x!.( semaphores ) do
-                
-                if x!.( semaphores ) = false then
-                    
-                    SignalSemaphore( semaphore );
-                    
-                else
-                    
-                    Add( x!.( semaphores ), semaphore );
-                    
-                fi;
-                
-            od;
-            
-            WaitSemaphore( semaphore );
-            
-            ## GAP now knows the value
-            return ValueGlobal( async_name )( x );
+            return SyncRead( x!.( syncvar ) );
             
         fi;
         
