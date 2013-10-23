@@ -8,10 +8,10 @@ ShareObj( HOMALG_SYNC_ATTR_REC );
 
 
 
-BindGlobal( "INSTALL_METHOD_WITHOUT_HACK",
+BindGlobal( "INSTALL_METHOD_WITHOUT_SYNC_HACK",
               InstallMethod );
 
-MakeImmutable( INSTALL_METHOD_WITHOUT_HACK );
+MakeImmutable( INSTALL_METHOD_WITHOUT_SYNC_HACK );
 
 
 BindGlobal( "HOMALG_SYNC_LOCK",
@@ -48,7 +48,7 @@ function( arg )
   
   CallFuncList( type, arg );
   
-  INSTALL_METHOD_WITHOUT_HACK( ValueGlobal( name ),
+  INSTALL_METHOD_WITHOUT_SYNC_HACK( ValueGlobal( name ),
                  "generated",
                  [ arg[ 2 ] ],
                  
