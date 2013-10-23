@@ -35,19 +35,14 @@ Objectify( TheTypeOfMyObj, a );
 
 Objectify( TheTypeOfMyObj, b );
 
+DeclareFilter( "IsSomething" );
+
 InstallImmediateMethod( TestProp,
-                        IsMyObject,
+                        IsMyObject and IsSomething,
                         0,
                         
   function( x )
     
-    Factorial( x!.count );
-    
     return true;
     
 end );
-
-c := rec( count := 100000000 );
-
-
-
