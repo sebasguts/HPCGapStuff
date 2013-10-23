@@ -35,5 +35,19 @@ Objectify( TheTypeOfMyObj, a );
 
 Objectify( TheTypeOfMyObj, b );
 
+InstallImmediateMethod( TestProp,
+                        IsMyObject,
+                        0,
+                        
+  function( x )
+    
+    Factorial( x!.count );
+    
+    return true;
+    
+end );
+
+c := rec( count := 100000000 );
+
 
 

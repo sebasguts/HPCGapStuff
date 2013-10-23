@@ -13,6 +13,11 @@ BindGlobal( "INSTALL_METHOD_WITHOUT_SYNC_HACK",
 
 MakeImmutable( INSTALL_METHOD_WITHOUT_SYNC_HACK );
 
+BindGlobal( "INSTALL_IMMEDIATE_METHOD_WITHOUT_SYNC_HACK",
+              InstallImmediateMethod );
+
+MakeImmutable( INSTALL_IMMEDIATE_METHOD_WITHOUT_SYNC_HACK );
+
 
 BindGlobal( "HOMALG_SYNC_LOCK",
             ShareInternalObj( [ ] ) );
@@ -53,12 +58,12 @@ function( arg )
                  [ arg[ 2 ] ],
                  
     function( x )
-        local is_calculator, locker, semaphores, semaphore_list, semaphore, i,
+        local is_calculator,
               ret_val, syncvar;
         
         is_calculator := false;
         
-        syncvar := Concatenation( async_name, "_syncvar" );
+        syncvar := Concatenation( name, "_syncvar" );
         
         if not IsBound( x!.( syncvar ) ) then
             
@@ -124,5 +129,142 @@ NEW_InstallMethod := function( arg )
 end;
 InstallMethod := NEW_InstallMethod;
 MakeReadOnlyGlobal( "InstallMethod" );
+
+NEW_InstallMethod := function( arg )
+  local name, install_different;
+  
+  name := NameFunction( arg[ 1 ] );
+  
+  atomic readonly HOMALG_SYNC_ATTR_REC do
+      
+      if IsBound( HOMALG_SYNC_ATTR_REC.( name ) ) then
+          
+          install_different := true;
+          
+      fi;
+      
+  od;
+  
+  MakeReadOnly( name );
+  
+  if install_different then
+      
+      old_func := arg[ Length( arg ) ];
+      
+      ## can only take one argument.
+      arg[ Length( arg ) ] := function( x )
+        local syncvar, sync_name, computes, ret_val;
+        
+        computes := false;
+        
+        sync_name := Concatenation( name, "_syncvar" );
+        
+        if not IsBound( x!.( sync_name ) ) then
+            
+            atomic readwrite HOMALG_SYNC_LOCK do
+                
+                if not IsBound( x!.( sync_name ) ) then
+                    
+                    x!.( sync_name ) := CreateSyncVar( );
+                    
+                    computes := true;
+                    
+                fi;
+                
+            od;
+            
+        fi;
+        
+        syncvar := x!.( sync_name );
+        
+        if computes then
+            
+            ret_val := old_func( x );
+            
+            SyncWrite( syncvar );
+            
+            return ret_val;
+            
+        fi;
+        
+        return SyncRead( syncvar );
+        
+      end;
+      
+  fi;
+  
+  CallFuncList( INSTALL_METHOD_WITHOUT_SYNC_HACK, arg );
+  
+end;
+
+ORIG_InstallImmediateMethod := InstallImmediateMethod;
+MakeReadWriteGlobal( "InstallImmediateMethod" );
+NEW_InstallImmediateMethod := function( arg )
+  local name, install_different, old_func, old_func_index, syncvar;
+  
+  name := NameFunction( arg[ 1 ] );
+  
+  install_different := false;
+  
+  atomic readonly HOMALG_SYNC_ATTR_REC do
+      
+      if IsBound( HOMALG_SYNC_ATTR_REC.(name) ) then
+          
+          install_different := true;
+          
+      fi;
+      
+  od;
+  
+  if install_different then
+      
+      old_func := arg[ Length( arg ) ];
+      
+      arg[ Length( arg ) ] :=
+          
+          function( x )
+              local syncvar, sync_name, sync_tester, ret_val;
+              
+              sync_name := Concatenation( name, "_syncvar" );
+              
+              if not IsBound( x!.( sync_name ) ) then
+                  
+                  atomic readwrite HOMALG_SYNC_LOCK do
+                      
+                      if not IsBound( x!.( sync_name ) ) then
+                          
+                          syncvar := CreateSyncVar( );
+                          
+                          x!.( sync_name ) := syncvar;
+                          
+                      fi;
+                      
+                  od;
+                  
+              fi;
+              
+              ret_val := old_func( x );
+              
+              if IsBound( syncvar ) then
+                  
+                  SyncWrite( syncvar, ret_val );
+                  
+              fi;
+              
+              return ret_val;
+              
+          end;
+          
+      CallFuncList( INSTALL_IMMEDIATE_METHOD_WITHOUT_SYNC_HACK, arg );
+      
+  else
+      
+      CallFuncList( INSTALL_IMMEDIATE_METHOD_WITHOUT_SYNC_HACK, arg );
+      
+  fi;
+  
+end;
+InstallImmediateMethod := NEW_InstallImmediateMethod;
+MakeReadOnlyGlobal( "InstallImmediateMethod" );
 
 
