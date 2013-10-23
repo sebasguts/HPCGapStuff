@@ -19,22 +19,17 @@ BindGlobal( sync_name,
 function( arg )
   local name, async_name;
   
+  CallFuncList( type, arg );
+  
   name := arg[ 1 ];
+  
+  MakeReadOnly( name );
   
   atomic readwrite HOMALG_SYNC_ATTR_REC do
       
       if IsBound( HOMALG_SYNC_ATTR_REC.(name) ) then
           
-          ## Should this only be done once for
-          ## every attribute, with IsObject filter?
-          CallFuncList( type, arg );
-          
-          arg[ 1 ] := HOMALG_SYNC_ATTR_REC.(name);
-          
-          CallFuncList( type, arg );
-          
-          ## ASK: Is this okay like this?
-          return;
+          async_name := HOMALG_SYNC_ATTR_REC.(name);
           
       else
           
@@ -48,13 +43,7 @@ function( arg )
       
   od;
   
-  CallFuncList( type, arg );
-  
   arg[ 1 ] := async_name;
-  
-  MakeReadOnly( name );
-  
-  MakeReadOnly( async_name );
   
   CallFuncList( type, arg );
   
